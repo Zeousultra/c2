@@ -1,11 +1,56 @@
 import socket
 import threading
 import time
+import platform
+from colorama import init, Fore, Style
 
-PORT = 4444  # Fixed port
-connections = {}  # { session_id: {'name': str, 'conn': socket.socket, 'addr': (ip, port), 'interacted': bool, 'backgrounded': bool} }
+init(autoreset=True)
+
+PORT = 4444
+connections = {}
 session_counter = 1
 lock = threading.Lock()
+
+ascii_banner = r"""
+          __,-----._                       ,-. 
+     ,'   ,-.    \`---.          ,-----<._/ 
+    (,.-. o:.`    )),"\\-._    ,'         `. 
+   ('"-` .\       \`:_ )\  `-;'-._          \ 
+  ,,-.    \` ;  :  \( `-'     ) -._     :   `: 
+ (    \ `._\\ ` ;             ;    `    :    ) 
+  \`.  `-.    __   ,         /  \        ;, ( 
+   `.`-.___--'  `-          /    ;     | :   | 
+     `-' `-.`--._          '           ;     | 
+           (`--._`.                ;   /\    | 
+            \     '                \  ,  )   : 
+            |  `--::----            \'   ;  ;| 
+            \    .__,-      (        )   :  :| 
+             \    : `------; \      |    |   ; 
+              \   :       / , )     |    |  ( 
+     -hrr-     \   \      `-^-|     |   / , ,\ 
+                )  )          | -^- ;   `-^-^' 
+             _,' _ ;          |    | 
+            / , , ,'         /---. : 
+            `-^-^'          (  :  :,' 
+                             `-^--' 
+██████╗ ██╗   ██╗██╗     ██╗         ██████╗  ██████╗  ██████╗ 
+██╔══██╗██║   ██║██║     ██║         ██╔══██╗██╔═══██╗██╔════╝ 
+██████╔╝██║   ██║██║     ██║         ██║  ██║██║   ██║██║  ███╗
+██╔══██╗██║   ██║██║     ██║         ██║  ██║██║   ██║██║   ██║
+██████╔╝╚██████╔╝███████╗███████╗    ██████╔╝╚██████╔╝╚██████╔╝
+╚═════╝  ╚═════╝ ╚══════╝╚══════╝    ╚═════╝  ╚═════╝  ╚═════╝ 
+                                                               
+                                                               
+     [ Athul's C2 Server - Ready to Command ]
+"""
+
+def banner():
+    print(Fore.RED + ascii_banner)
+    print(Fore.YELLOW + f"[+] Hostname     : {platform.node()}")
+    print(f"[+] OS           : {platform.system()} {platform.release()}")
+    print(f"[+] Architecture : {platform.machine()}")
+    print(Style.RESET_ALL)
+    time.sleep(1)
 
 def add_connection():
     global session_counter
@@ -16,7 +61,6 @@ def add_connection():
     try:
         s = socket.socket()
         s.connect((ip, PORT))
-
         with lock:
             connections[session_counter] = {
                 'name': name,
@@ -157,7 +201,9 @@ def remove_connection():
 
 def menu():
     while True:
-        print("\n=== C2 MENU ===")
+        print(Fore.GREEN + "\n╔═══════════════════════════╗")
+        print("║      C2 MAIN MENU         ║")
+        print("╚═══════════════════════════╝" + Style.RESET_ALL)
         print("1. Add Connection")
         print("2. Show All Connections")
         print("3. Interact with Connection")
@@ -188,4 +234,5 @@ def menu():
             time.sleep(1)
 
 if __name__ == "__main__":
+    banner()
     menu()
